@@ -1,0 +1,19 @@
+{
+  "author": "",
+  "name": "henry",
+  "description": "A wrapper around knox which fetches credentials from the EC2 metadata API",
+  "keywords": ["knox", "amazon", "s3", "aws"],
+  "version": "0.0.0",
+  "repository": {
+    "url": ""
+  },
+  "main": "./lib/henry.js",
+  "engines": {
+    "node": "0.8.x"
+  },
+  "dependencies": {
+    "knox": "0.4.x",
+    "step": "0.0.x",
+    "request": "2.11.x"
+  }
+}
