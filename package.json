@@ -8,7 +8,9 @@
     "url": ""
   },
   "main": "./lib/henry.js",
-  "test": "mocha",
+  "scripts": {
+    "test": "mocha -R spec"
+  },
   "engines": {
     "node": "0.8.x"
   },
