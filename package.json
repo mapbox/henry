@@ -8,6 +8,7 @@
     "url": ""
   },
   "main": "./lib/henry.js",
+  "test": "mocha",
   "engines": {
     "node": "0.8.x"
   },
@@ -15,5 +16,8 @@
     "knox": "0.4.x",
     "step": "0.0.x",
     "request": "2.11.x"
+  },
+  "devDependencies": {
+    "nock": "0.14.x"
   }
 }
