@@ -79,13 +79,6 @@ var metadata = nock('http://169.254.169.254')
   .get('/latest/meta-data/iam/security-credentials/role1')
   .reply(200, v4);
 
-// Mock client of S3 api
-var s3 = nock('https://mybucket.s3.amazonaws.com')
-  .get('/test')
-  .reply(200, 'test')
-  .get('/test')
-  .reply(200, 'test');
-
 describe('henry client', function() {
     it('should set default key and secret to KEY and SECRET', function(done) {
         assert.equal(client.key, 'KEY');
@@ -93,49 +86,19 @@ describe('henry client', function() {
         done();
     })
     it('should retrieve credentials from metadata API', function(done) {
-        client.get('/test', function(err, req) {
-        if (err) return done(err);
-        assert.equal(client.key, 'XXX');
-        assert.equal(client.secret, 'XXX');
-        req.on('error', done);
-        req.on('response', function(res) {
-            var string = '';
-            res.setEncoding('utf8');
-            res.on('data', function(chunk) {
-                string += chunk;
-            });
-            res.on('end', function() {
-                assert.equal(res.statusCode, 200);
-                assert.equal(string, 'test');
-                done();
-            });
-        })
-        req.end();
+        checkCredentials.call(client, function(err, res) {
+            assert.equal(client.key, 'XXX');
+            done(err);
         });
     })
     it('should re-fetch the credentials', function(done) {
         expire();
-        client.get('/test', function(err, req) {
-            if (err) return done(err);
+        checkCredentials.call(client, function(err, res) {
             assert.equal(client.key, 'YYY');
-            assert.equal(client.secret, 'YYY');
-            req.on('error', done);
-            req.on('response', function(res) {
-                var string = '';
-                res.setEncoding('utf8');
-                res.on('data', function(chunk) {
-                    string += chunk;
-                });
-                res.on('end', function() {
-                    assert.equal(res.statusCode, 200);
-                    assert.equal(string, 'test');
-                    done();
-                });
-            })
-            req.end();
+            done(err);
         });
     })
-    it('should re-fetch the credentials, again', function(done) {
+    it('should use "refresh" and fetch the credentials again', function(done) {
         checkCredentials.call(client, true, function(err, res) {
             assert.equal(client.key, 'ZZZ');
             done(err);
