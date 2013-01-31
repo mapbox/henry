@@ -79,60 +79,60 @@ var metadata = nock('http://169.254.169.254')
   .get('/latest/meta-data/iam/security-credentials/role1')
   .reply(200, v4);
 
-describe('henry client', function() {
-    it('should set default key and secret to KEY and SECRET', function(done) {
+module.exports = {
+    'should set default key and secret': function() {
         assert.equal(client.key, 'KEY');
         assert.equal(client.secret, 'SECRET');
-        done();
-    })
-    it('should retrieve credentials from metadata API', function(done) {
+    },
+    'should retrieve credentials from metadata API': function(done) {
         checkCredentials.call(client, function(err, res) {
             assert.equal(client.key, 'XXX');
             done(err);
         });
-    })
-    it('should re-fetch the credentials', function(done) {
+    },
+    'should re-fetch the credentials': function(done) {
         expire();
         checkCredentials.call(client, function(err, res) {
             assert.equal(client.key, 'YYY');
             done(err);
         });
-    })
-    it('should use "refresh" and fetch the credentials again', function(done) {
+    },
+    'should use "refresh" and fetch the credentials again': function(done) {
         checkCredentials.call(client, true, function(err, res) {
             assert.equal(client.key, 'ZZZ');
             done(err);
         });
-    })
-    it('should not re-fetch the credentials', function(done) {
+    },
+    'should not re-fetch the credentials': function(done) {
         gainTime();
         checkCredentials.call(client, function(err, res) {
             assert.equal(client.key, 'ZZZ');
             done(err);
         });
-    })
-    it('should return cached credentials on non 200 from metadata API', function(done) {
+    },
+    'should return cached credentials on non 200 from metadata API': function(done) {
         gainTime();
         checkCredentials.call(client, function(err, res) {
             assert.equal(client.key, 'ZZZ');
             done(err);
         });
-    })
-    it('should return cached credentials on non 200 from metadata API', function(done) {
+    },
+    'should return cached credentials on non 200 from metadata API, inner request': function(done) {
         gainTime();
         checkCredentials.call(client, function(err, res) {
             assert.equal(client.key, 'ZZZ');
             done(err);
         });
-    })
-    it('should return cached credentials on "Code" != "Success" from metadata API', function(done) {
+    },
+    'should return cached credentials on "Code" != "Success" from metadata API': function(done) {
         expire();
         checkCredentials.call(client, function(err, res) {
             assert.equal(client.key, 'ZZZ');
             done(err);
         });
-    })
-});
+    }
+
+};
 
 function gainTime() {
     if (client.expires - +new Date() < 1) client.expires = +new Date() + 1000;
