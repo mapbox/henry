@@ -101,7 +101,7 @@ describe('henry wrapper', function() {
         });
     })
     it('should update credentials on setInterval', function(done) {
-        registerClient(client, 200);
+        registerClient(client, false, 200);
         setTimeout(function() {
             assert.equal(client.key, 'ZZZ');
             assert.equal(client.secret, 'ZZZ');
