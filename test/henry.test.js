@@ -1,10 +1,7 @@
 var assert = require('assert');
-var knox = require('knox');
 var nock = require('nock');
-var updateClient = require('../lib/henry').updateClient;
-var registerClient = require('../lib/henry').registerClient;
+var henry = require('../lib/henry');
 
-var expires = new Date(+new Date + 60000).toISOString();
 // Keep fixture generation literal to allow for easy adjustment.
 var v1 = {
   "Code" : "Success",
@@ -13,7 +10,7 @@ var v1 = {
   "AccessKeyId" : "XXX",
   "SecretAccessKey" : "XXX",
   "Token" : "XXX",
-  "Expiration" : expires
+  "Expiration" : "XXX"
 };
 
 var v2 = {
@@ -23,7 +20,7 @@ var v2 = {
   "AccessKeyId" : "YYY",
   "SecretAccessKey" : "YYY",
   "Token" : "YYY",
-  "Expiration" : expires
+  "Expiration" : "YYY"
 };
 
 var v3 = {
@@ -33,7 +30,7 @@ var v3 = {
   "AccessKeyId" : "ZZZ",
   "SecretAccessKey" : "ZZZ",
   "Token" : "ZZZ",
-  "Expiration" : expires
+  "Expiration" : "ZZZ"
 };
 
 // Mock client of AWS metadata API
@@ -60,24 +57,47 @@ var metadata = nock('http://169.254.169.254')
   .get('/latest/meta-data/iam/security-credentials/')
   .reply(200, 'role1')
   .get('/latest/meta-data/iam/security-credentials/role1')
-  .reply(200, v3);
+  .reply(200, v3)
+  // Fifth fetch, update credentials on setInterval
+  .get('/latest/meta-data/iam/security-credentials/')
+  .reply(200, 'role1')
+  .get('/latest/meta-data/iam/security-credentials/role1')
+  .reply(200, v1);
 
 describe('henry wrapper', function() {
-        var client = knox.createClient({
-            key: 'KEY',
-            secret: 'SECRET',
-            bucket: 'mybucket'
-        });
+        var client = {};
+        var client2 = {
+            key: 'foo'
+        };
+        var client3 = {
+            awsKey: 'foo'
+        };
+        var client4 = {
+            awsKey: null,
+            awsSecret: null
+        };
     it('should fetch credentials when instantiated', function(done) {
-        require('../lib/henry')(client, function(err, client) {
+        henry(client, function(err, client) {
             assert.equal(client.key, 'XXX');
             assert.equal(client.secret, 'XXX');
             assert.equal(client.token, 'XXX');
             done(err);
         });
     })
+    it('should not fetch credentials when key is set', function(done) {
+        henry(client2, function(err, client) {
+            assert.equal(client.key, 'foo');
+            done(err);
+        });
+    })
+    it('should not fetch credentials when key is set, custom props', function(done) {
+        henry(client3, ['awsKey'], function(err, client) {
+            assert.equal(client.awsKey, 'foo');
+            done(err);
+        });
+    })
     it('should update the client with new credentials', function(done) {
-        updateClient(client, function(err, client) {
+        henry.updateClient(client, function(err, client) {
             assert.equal(client.key, 'YYY');
             assert.equal(client.secret, 'YYY');
             assert.equal(client.token, 'YYY');
@@ -85,7 +105,7 @@ describe('henry wrapper', function() {
         });
     })
     it('should use same credentials on non-200 from metadata API outer call', function(done) {
-        updateClient(client, function(err, client) {
+        henry.updateClient(client, function(err, client) {
             assert.equal(client.key, 'YYY');
             assert.equal(client.secret, 'YYY');
             assert.equal(client.token, 'YYY');
@@ -93,7 +113,7 @@ describe('henry wrapper', function() {
         });
     })
     it('should use same credentials on non-200 from metadata API inner call', function(done) {
-        updateClient(client, function(err, client) {
+        henry.updateClient(client, function(err, client) {
             assert.equal(client.key, 'YYY');
             assert.equal(client.secret, 'YYY');
             assert.equal(client.token, 'YYY');
@@ -101,12 +121,22 @@ describe('henry wrapper', function() {
         });
     })
     it('should update credentials on setInterval', function(done) {
-        registerClient(client, false, 200);
+        henry.registerClient(client, false, 200);
         setTimeout(function() {
             assert.equal(client.key, 'ZZZ');
             assert.equal(client.secret, 'ZZZ');
             assert.equal(client.token, 'ZZZ');
             done();
         }, 300);
+    })
+    it('should update the client with new credentials, using custom props', function(done) {
+        henry.updateClient(client,
+          ['awsKey', 'awsSecret', 'awsToken', 'awsExpiration'], function(err, client) {
+            assert.equal(client.awsKey, 'XXX');
+            assert.equal(client.awsSecret, 'XXX');
+            assert.equal(client.awsToken, 'XXX');
+            assert.equal(client.awsExpiration, 'XXX');
+            done(err);
+        });
     })
 });

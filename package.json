@@ -18,7 +18,6 @@
     "request": "2.11.x"
   },
   "devDependencies": {
-    "knox": "0.5.x",
     "nock": "0.14.x"
   }
 }
