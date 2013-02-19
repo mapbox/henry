@@ -11,8 +11,8 @@ temporary credentials from the [AWS Security Token Service (STS)][sts].
 > Management (IAM) users or for users that you authenticate (federated users).
 
 Henry polls the [EC2 Instance Metadata API][metadata] to fetch the most
-up-to-date security credentials and making it possible to use
-[IAM Roles][roles] to delegate access to node applications.
+up-to-date security credentials and makes it possible to use
+[IAM Roles][roles] to delegate access to Node.js applications.
 
 [knox]:https://github.com/LearnBoost/knox
 [sts]:http://docs.aws.amazon.com/STS/latest/APIReference/Welcome.html
