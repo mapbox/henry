@@ -1,5 +1,8 @@
 Henry
 =====
+
+![](http://f.cl.ly/items/2u24432D210m3i0q422g/Screenshot_2_19_13_12_01_AM.png)
+
 Henry is an agent for regularly updateing [knox][knox] and other AWS clients with
 temporary credentials from the [AWS Security Token Service (STS)][sts].
 
