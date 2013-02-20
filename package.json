@@ -1,7 +1,7 @@
 {
   "author": "",
   "name": "henry",
-  "description": "A wrapper around knox which fetches credentials from the EC2 metadata API",
+  "description": "Agent for updating temporary credentials using AWS Security Token Service.",
   "keywords": ["knox", "amazon", "s3", "aws"],
   "version": "0.0.0",
   "repository": {
