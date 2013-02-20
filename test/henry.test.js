@@ -1,6 +1,6 @@
 var assert = require('assert');
 var nock = require('nock');
-var henry = require('../lib/henry');
+var Henry = require('../lib/henry');
 
 // Keep fixture generation literal to allow for easy adjustment.
 var v1 = {
@@ -33,71 +33,47 @@ var v3 = {
   "Expiration" : "ZZZ"
 };
 
-// Mock client of AWS metadata API
-var metadata = nock('http://169.254.169.254')
-  // First fetch
-  .get('/latest/meta-data/iam/security-credentials/')
-  .reply(200, 'role1')
-  .get('/latest/meta-data/iam/security-credentials/role1')
-  .reply(200, v1)
-  // Second fetch
-  .get('/latest/meta-data/iam/security-credentials/')
-  .reply(200, 'role1')
-  .get('/latest/meta-data/iam/security-credentials/role1')
-  .reply(200, v2)
-  // Third fetch, non 200 on outer call
-  .get('/latest/meta-data/iam/security-credentials/')
-  .reply(500, 'role1')
-  // Fourth fetch, non 200 on inner call
-  .get('/latest/meta-data/iam/security-credentials/')
-  .reply(200, 'role1')
-  .get('/latest/meta-data/iam/security-credentials/role1')
-  .reply(500, '')
-  // Fifth fetch, update credentials on setInterval
-  .get('/latest/meta-data/iam/security-credentials/')
-  .reply(200, 'role1')
-  .get('/latest/meta-data/iam/security-credentials/role1')
-  .reply(200, v3)
-  // Fifth fetch, update credentials on setInterval
-  .get('/latest/meta-data/iam/security-credentials/')
-  .reply(200, 'role1')
-  .get('/latest/meta-data/iam/security-credentials/role1')
-  .reply(200, v1);
-
 describe('henry wrapper', function() {
-        var client = {};
-        var client2 = {
-            key: 'foo'
-        };
-        var client3 = {
-            awsKey: 'foo'
-        };
-        var client4 = {
-            awsKey: null,
-            awsSecret: null
-        };
+    before(function() {
+        // Mock client of AWS metadata API
+        this.nock = nock('http://169.254.169.254')
+            .get('/latest/meta-data/iam/security-credentials/')
+            .reply(200, 'role1')
+            .get('/latest/meta-data/iam/security-credentials/role1')
+            .reply(200, v1);
+        this.henry = new Henry();
+    });
+    var client = {};
+    var client2 = {
+        key: 'foo'
+    };
+    var client3 = {
+        awsKey: 'foo'
+    };
+    var client4 = {
+        awsKey: null,
+        awsSecret: null
+    };
     it('should fetch credentials when instantiated', function(done) {
-        henry(client, function(err, client) {
+        this.nock
+            .get('/latest/meta-data/iam/security-credentials/')
+            .reply(200, 'role1')
+            .get('/latest/meta-data/iam/security-credentials/role1')
+            .reply(200, v1);
+        this.henry.add(client, function(err) {
             assert.equal(client.key, 'XXX');
             assert.equal(client.secret, 'XXX');
             assert.equal(client.token, 'XXX');
             done(err);
         });
     })
-    it('should not fetch credentials when key is set', function(done) {
-        henry(client2, function(err, client) {
-            assert.equal(client.key, 'foo');
-            done(err);
-        });
-    })
-    it('should not fetch credentials when key is set, custom props', function(done) {
-        henry(client3, ['awsKey'], function(err, client) {
-            assert.equal(client.awsKey, 'foo');
-            done(err);
-        });
-    })
-    it('should update the client with new credentials', function(done) {
-        henry.updateClient(client, function(err, client) {
+    it('should refresh the client with new credentials', function(done) {
+        this.nock
+            .get('/latest/meta-data/iam/security-credentials/')
+            .reply(200, 'role1')
+            .get('/latest/meta-data/iam/security-credentials/role1')
+            .reply(200, v2)
+        this.henry.refresh(function(err, credentials) {
             assert.equal(client.key, 'YYY');
             assert.equal(client.secret, 'YYY');
             assert.equal(client.token, 'YYY');
@@ -105,33 +81,70 @@ describe('henry wrapper', function() {
         });
     })
     it('should use same credentials on non-200 from metadata API outer call', function(done) {
-        henry.updateClient(client, function(err, client) {
+        this.nock
+            .get('/latest/meta-data/iam/security-credentials/')
+            .reply(500, 'role1')
+        this.henry.refresh(function(err, credentials) {
+            if (err.code != 500) return done(err);
             assert.equal(client.key, 'YYY');
             assert.equal(client.secret, 'YYY');
             assert.equal(client.token, 'YYY');
-            done(err);
+            done();
         });
     })
     it('should use same credentials on non-200 from metadata API inner call', function(done) {
-        henry.updateClient(client, function(err, client) {
+        this.nock
+            .get('/latest/meta-data/iam/security-credentials/')
+            .reply(200, 'role1')
+            .get('/latest/meta-data/iam/security-credentials/role1')
+            .reply(500, '')
+        this.henry.refresh(function(err, credentials) {
+            if (err.code != 500) return done(err);
             assert.equal(client.key, 'YYY');
             assert.equal(client.secret, 'YYY');
             assert.equal(client.token, 'YYY');
-            done(err);
+            done();
         });
     })
     it('should update credentials on setInterval', function(done) {
-        henry.registerClient(client, false, 200);
-        setTimeout(function() {
-            assert.equal(client.key, 'ZZZ');
-            assert.equal(client.secret, 'ZZZ');
-            assert.equal(client.token, 'ZZZ');
-            done();
-        }, 300);
+        this.nock
+            .get('/latest/meta-data/iam/security-credentials/')
+            .reply(200, 'role1')
+            .get('/latest/meta-data/iam/security-credentials/role1')
+            .reply(200, v1)
+            .get('/latest/meta-data/iam/security-credentials/')
+            .reply(200, 'role1')
+            .get('/latest/meta-data/iam/security-credentials/role1')
+            .reply(200, v1)
+            .get('/latest/meta-data/iam/security-credentials/')
+            .reply(200, 'role1')
+            .get('/latest/meta-data/iam/security-credentials/role1')
+            .reply(200, v3)
+        var henry = new Henry({ interval: 500 });
+        henry.add(client, function(err, credentials) {
+            assert.equal(client.key, 'XXX');
+            assert.equal(client.secret, 'XXX');
+            assert.equal(client.token, 'XXX');
+            setTimeout(function() {
+                assert.equal(client.key, 'ZZZ');
+                assert.equal(client.secret, 'ZZZ');
+                assert.equal(client.token, 'ZZZ');
+                done();
+            }, 1000);
+        });
     })
     it('should update the client with new credentials, using custom props', function(done) {
-        henry.updateClient(client,
-          ['awsKey', 'awsSecret', 'awsToken', 'awsExpiration'], function(err, client) {
+        this.nock
+            .get('/latest/meta-data/iam/security-credentials/')
+            .reply(200, 'role1')
+            .get('/latest/meta-data/iam/security-credentials/role1')
+            .reply(200, v1);
+        this.henry.add(client, {
+            key: 'awsKey',
+            secret: 'awsSecret',
+            token: 'awsToken',
+            expiration: 'awsExpiration'
+        }, function(err) {
             assert.equal(client.awsKey, 'XXX');
             assert.equal(client.awsSecret, 'XXX');
             assert.equal(client.awsToken, 'XXX');
