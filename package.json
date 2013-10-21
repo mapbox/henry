@@ -15,9 +15,9 @@
     "node": "0.8.x"
   },
   "dependencies": {
-    "request": "2.11.x"
+    "request": "2.27.x"
   },
   "devDependencies": {
-    "nock": "0.14.x"
+    "nock": "0.22.x"
   }
 }
