@@ -1,3 +1,6 @@
+Build status
+============
+
 [![Build Status](https://travis-ci.org/mapbox/henry.png)](https://travis-ci.org/mapbox/henry)
 
 Henry
